@@ -1,0 +1,70 @@
+name: CI Rust
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        rust: [ stable ]
+
+    steps:
+      # 1. Checkout kode repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Instal Rust toolchain
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
+
+      # 3. Cache Cargo registry dan target untuk mempercepat build
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            producer/target
+            consumer/target
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.rust }}-
+
+      # 4. Periksa formatting kode (cargo fmt)
+      - name: Run cargo fmt --check
+        run: |
+          cargo fmt --all -- --check
+
+      # 5. Linter dengan clippy (peringatan error akan gagalkan CI)
+      - name: Run cargo clippy
+        run: |
+          cargo clippy --all-targets -- -D warnings
+
+      # 6. Build semua crate (producer & consumer)
+      - name: Build producer
+        run: cargo build --manifest-path producer/Cargo.toml
+
+      - name: Build consumer
+        run: cargo build --manifest-path consumer/Cargo.toml
+
+      # 7. Jalankan test (kalau ada) dan cek compile
+      - name: Run cargo test
+        run: cargo test --workspace
+
+      # 8. Ringkasan hasil
+      - name: CI Selesai
+        if: always()
+        run: echo "✅ CI Rust selesai untuk branch ${{ github.ref }}"

@@ -1,0 +1,26 @@
+# Rust
+target/
+Cargo.lock
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker / volumes (jangan commit data database)
+pgdata/
+pgadmin_data/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
